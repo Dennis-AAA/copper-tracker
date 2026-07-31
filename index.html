@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全球铜矿成本与产量追踪</title>
+<style>
+  :root {
+    --copper: #b5651d;
+    --copper-soft: rgba(181, 101, 29, 0.10);
+    --c-text: var(--kimi-color-text-primary, #1d2129);
+    --c-text2: var(--kimi-color-text-secondary, #4e5969);
+    --c-text3: var(--kimi-color-text-tertiary, #86909c);
+    --c-surface: var(--kimi-color-surface, #ffffff);
+    --c-surface-muted: var(--kimi-color-surface-muted, #f6f7f9);
+    --c-surface-raised: var(--kimi-color-surface-raised, #ffffff);
+    --c-border: var(--kimi-color-border, #e5e6eb);
+    --c-positive: var(--kimi-color-positive, #16803c);
+    --c-warning: var(--kimi-color-warning, #b86e00);
+    --c-danger: var(--kimi-color-danger, #cb2634);
+    --c-accent: var(--kimi-color-accent, #2f6bff);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #f2f3f5;
+    color: var(--c-text);
+    font-family: var(--kimi-font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif);
+    font-size: 13px;
+    line-height: 1.55;
+    letter-spacing: 0;
+  }
+  main {
+    padding: 22px 18px 14px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #ffffff;
+    min-height: 100vh;
+    box-shadow: 0 0 0 1px #e5e6eb;
+  }
+  /* ---------- header ---------- */
+  header.top {
+    padding-inline-end: var(--daimon-widget-host-safe-inline-end, 0px);
+    margin-bottom: 14px;
+  }
+  .title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  h1 {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  h1 .cu {
+    color: var(--copper);
+  }
+  .badge-date {
+    font-size: 11px;
+    color: var(--copper);
+    background: var(--copper-soft);
+    border: 1px solid rgba(181, 101, 29, 0.35);
+    border-radius: 999px;
+    padding: 2px 10px;
+    white-space: nowrap;
+  }
+  .pill {
+    font-size: 11px;
+    border-radius: 999px;
+    padding: 2px 10px;
+    white-space: nowrap;
+  }
+  .pill.running {
+    color: var(--c-accent);
+    background: color-mix(in srgb, var(--c-accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c-accent) 35%, transparent);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .pill.warn {
+    color: var(--c-warning);
+    background: color-mix(in srgb, var(--c-warning) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c-warning) 35%, transparent);
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+  @media (prefers-reduced-motion: reduce) { .pill.running { animation: none; } }
+  .headline {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--c-text2);
+  }
+  /* ---------- sections ---------- */
+  section { margin-bottom: 18px; }
+  .sec-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .sec-title::before {
+    content: "";
+    width: 4px; height: 14px;
+    border-radius: 2px;
+    background: var(--copper);
+    flex: none;
+  }
+  .sec-title .sub {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--c-text3);
+  }
+  /* ---------- KPI strip ---------- */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  @media (min-width: 760px) {
+    .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  .kpi {
+    background: var(--c-surface-muted);
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-width: 0;
+  }
+  .kpi .label {
+    font-size: 11px;
+    color: var(--c-text3);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .kpi .value {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi .value .unit {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--c-text3);
+    margin-left: 3px;
+  }
+  .kpi .value.pos { color: var(--c-positive); }
+  .kpi .value.neg { color: var(--c-danger); }
+  /* ---------- highlights ---------- */
+  ul.hl { list-style: none; }
+  ul.hl li {
+    position: relative;
+    padding-left: 14px;
+    margin-bottom: 5px;
+    color: var(--c-text2);
+    font-size: 12.5px;
+  }
+  ul.hl li::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 7px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--copper);
+  }
+  /* ---------- pending reports (核心) ---------- */
+  .pending-card {
+    background: linear-gradient(180deg, var(--copper-soft), transparent 70%);
+    border: 1px solid rgba(181, 101, 29, 0.35);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .pending-list {
+    list-style: none;
+    position: relative;
+    margin-left: 5px;
+  }
+  .pending-list::before {
+    content: "";
+    position: absolute;
+    left: 5px; top: 8px; bottom: 8px;
+    width: 2px;
+    background: rgba(181, 101, 29, 0.3);
+    border-radius: 1px;
+  }
+  .pending-item {
+    position: relative;
+    padding: 5px 0 5px 22px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+  }
+  .pending-item::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 11px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--c-surface);
+    border: 3px solid var(--copper);
+    box-sizing: border-box;
+  }
+  .pending-item .co {
+    font-weight: 700;
+    font-size: 12.5px;
+  }
+  .pending-item .when {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--copper);
+    background: var(--c-surface);
+    border: 1px solid rgba(181, 101, 29, 0.35);
+    border-radius: 999px;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+  .pending-item .what {
+    flex-basis: 100%;
+    font-size: 11.5px;
+    color: var(--c-text2);
+  }
+  @media (min-width: 560px) {
+    .pending-item .what { flex-basis: auto; }
+  }
+  /* ---------- tables ---------- */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    background: var(--c-surface);
+  }
+  .table-wrap.tall {
+    max-height: 430px;
+    overflow-y: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    min-width: 560px;
+  }
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--c-surface-muted);
+    color: var(--c-text2);
+    font-weight: 600;
+    font-size: 11.5px;
+    text-align: left;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--c-border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--c-border);
+    vertical-align: top;
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--c-surface-muted); }
+  th.num, td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  td.co { font-weight: 600; white-space: normal; min-width: 110px; }
+  td.note {
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--c-text3);
+    font-size: 11.5px;
+  }
+  .neg { color: var(--c-positive); font-weight: 700; }
+  .dash { color: var(--c-text3); }
+  .st {
+    display: inline-block;
+    font-size: 11px;
+    border-radius: 999px;
+    padding: 1px 8px;
+    white-space: nowrap;
+  }
+  .st.actual {
+    color: var(--c-positive);
+    background: color-mix(in srgb, var(--c-positive) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c-positive) 35%, transparent);
+  }
+  .st.pending {
+    color: var(--c-warning);
+    background: color-mix(in srgb, var(--c-warning) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c-warning) 35%, transparent);
+  }
+  .st.guidance {
+    color: var(--c-accent);
+    background: color-mix(in srgb, var(--c-accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c-accent) 35%, transparent);
+  }
+  /* ---------- chart ---------- */
+  .chart-card {
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    background: var(--c-surface);
+    padding: 10px 12px 12px;
+  }
+  .chart-box { width: 100%; }
+  canvas#c1Chart { display: block; width: 100%; height: 250px; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-top: 8px;
+  }
+  .legend .lg {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--c-text2);
+    white-space: nowrap;
+  }
+  .legend .chip {
+    width: 14px; height: 3px;
+    border-radius: 2px;
+    flex: none;
+  }
+  /* ---------- production change bars ---------- */
+  td.chg { min-width: 120px; }
+  .chg-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chg-bar {
+    position: relative;
+    width: 56px; height: 6px;
+    background: var(--c-surface-muted);
+    border-radius: 3px;
+    overflow: hidden;
+    flex: none;
+  }
+  .chg-bar i {
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    border-radius: 3px;
+  }
+  .chg-pct {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+  .up { color: var(--c-positive); }
+  .down { color: var(--c-danger); }
+  /* ---------- new mines timeline ---------- */
+  .mines-track {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  @media (min-width: 760px) {
+    .mines-track {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+  }
+  .mine-year {
+    position: relative;
+    flex: 1 1 150px;
+    min-width: 140px;
+    border-top: 2px solid rgba(181, 101, 29, 0.4);
+    padding-top: 10px;
+  }
+  .mine-year::before {
+    content: "";
+    position: absolute;
+    top: -6px; left: 0;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--copper);
+  }
+  .mine-year .yr {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--copper);
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .mine-card {
+    background: var(--c-surface-muted);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+  }
+  .mine-card .nm { font-weight: 700; font-size: 12px; }
+  .mine-card .cap {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--copper);
+    background: var(--copper-soft);
+    border-radius: 4px;
+    padding: 0 5px;
+    margin-left: 4px;
+    white-space: nowrap;
+  }
+  .mine-card .meta {
+    font-size: 11px;
+    color: var(--c-text3);
+    margin-top: 2px;
+  }
+  .mine-card .mst {
+    font-size: 11px;
+    color: var(--c-text2);
+    margin-top: 2px;
+  }
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--c-border);
+    font-size: 11px;
+    color: var(--c-text3);
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="top" data-kimi-priority="p0">
+    <div class="title-row">
+      <h1><span class="cu">⬢</span> 全球铜矿成本与产量追踪</h1>
+      <span class="badge-date" id="updatedAt"></span>
+      <span class="pill" id="statusPill" hidden></span>
+    </div>
+    <p class="headline" id="headline"></p>
+  </header>
+
+  <section data-kimi-priority="p0" aria-label="关键指标">
+    <div class="kpis" id="kpiStrip"></div>
+  </section>
+
+  <section data-kimi-priority="p1" aria-label="要点">
+    <h2 class="sec-title">本期要点</h2>
+    <ul class="hl" id="highlights"></ul>
+  </section>
+
+  <section data-kimi-priority="p0" aria-label="待发布财报清单">
+    <h2 class="sec-title">待发布财报清单 <span class="sub">财报季追踪 · 按预计日期排序</span></h2>
+    <div class="pending-card">
+      <ul class="pending-list" id="pendingList"></ul>
+    </div>
+  </section>
+
+  <section data-kimi-priority="p1" aria-label="成本表">
+    <h2 class="sec-title">前20大矿企 · 成本与产量 <span class="sub">产量单位:kt · 增速单位:% · 成本单位:美元/磅</span></h2>
+    <div class="table-wrap tall">
+      <table id="costTable">
+        <thead>
+          <tr>
+            <th>公司</th><th class="num">Q1产量</th><th class="num">Q1同比</th>
+            <th class="num">Q2产量</th><th class="num">Q2环比</th><th class="num">Q2同比</th>
+            <th>成本期间</th>
+            <th class="num">C1 毛</th><th class="num">C1 净</th><th class="num">AISC 净</th>
+            <th>状态</th><th>备注</th>
+          </tr>
+        </thead>
+        <tbody id="costBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section data-kimi-priority="p1" aria-label="C1五年走势">
+    <h2 class="sec-title">C1 净现金成本五年走势 <span class="sub">美元/磅 · 年报口径</span></h2>
+    <div class="chart-card">
+      <div class="chart-box"><canvas id="c1Chart"></canvas></div>
+      <div class="legend" id="chartLegend"></div>
+    </div>
+  </section>
+
+  <section data-kimi-priority="p2" aria-label="产量指引">
+    <h2 class="sec-title">产量指引 <span class="sub">单位:kt;变化为 2026E 对 2025</span></h2>
+    <div class="table-wrap">
+      <table id="prodTable">
+        <thead>
+          <tr>
+            <th>公司</th><th class="num">2025</th><th class="num">2026E</th>
+            <th class="num">2028E</th><th class="num">2030E</th><th>2026E 变化</th>
+          </tr>
+        </thead>
+        <tbody id="prodBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section data-kimi-priority="p2" aria-label="新投产矿山">
+    <h2 class="sec-title">新投产 / 在建矿山管线 <span class="sub">按投产年份分组 · 名义产能</span></h2>
+    <div class="mines-track" id="minesTrack"></div>
+  </section>
+
+  <footer data-kimi-priority="p3">数据来源:各公司财报/公告 · 本页为 2026-07-30 静态快照,最新数据见 Kimi Work 内的自动更新看板。</footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var host = (typeof window !== "undefined" && window.DaimonWidget) ? window.DaimonWidget : null;
+
+  var SAMPLE = {
+  "updatedAt": "2026-07-30(静态快照·看板由定时任务每周一/四自动更新)",
+  "headline": "2026年Q2铜矿产量与成本追踪：Glencore H1产量增15%成本降至$2.08/lb；Vale Q2产量98.4kt创2017以来最佳Q2；多数公司Q2/H1财报待发布",
+  "highlights": [
+    "Glencore发布H1 2026生产报告：自有铜产量397kt（+15% YoY），H1净现金成本$2.08/lb，较H1 2025的$2.41/lb显著下降",
+    "Vale Q2铜产量98.4kt（+6% YoY），创2017年以来最佳Q2；Salobo创纪录52.4kt；2Q26财务结果定于7月30日收盘后发布",
+    "Anglo American、Lundin Mining、Capstone Copper、Vale Base Metals 2Q26/H1财务结果均定于7月30日收盘后发布，实际单位成本尚待披露",
+    "Rio Tinto确认H1铜C1净现金成本-24.7美分/磅（c1Net=-0.25），受益于高金价副产品抵扣；产量Q2环比-7%因Kennecott熔炉停机",
+    "MMG Las Bambas H1 C1降至$0.55/lb，全年指引下调至$0.85–1.05/lb；Q2产量109.2kt（-5% YoY）",
+    "Teck Q2铜产量135.9kt（+25% YoY），净现金成本$1.64/lb；与Anglo合并待中国反垄断审批，预计2026年9月–2027年3月完成",
+    "Freeport Q2产量356.5kt（环比+18.7%），净现金成本$1.97/lb，优于此前指引；Grasberg Block Cave爬坡中",
+    "全球Top 20矿企2026E合计产量约14.48Mt，较2025年14.62Mt略降约1%"
+  ],
+  "companies": [
+    {
+      "name": "Codelco",
+      "period": "2026Q1",
+      "q1ProdKt": 299.6,
+      "q1YoYPct": -8.1,
+      "q2ProdKt": null,
+      "q2YoYPct": null,
+      "q2QoQPct": null,
+      "c1Gross": null,
+      "c1Net": 2.32,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q1自有产量272.0kt（-8.1% YoY）。Q2/H1报告预计2026年8月下旬发布。2026全年产量指引1.33–1.36Mt。"
+    },
+    {
+      "name": "Freeport-McMoRan",
+      "period": "2026Q2",
+      "q1ProdKt": 300.3,
+      "q1YoYPct": null,
+      "q2ProdKt": 356.5,
+      "q2YoYPct": null,
+      "q2QoQPct": 18.71,
+      "c1Gross": null,
+      "c1Net": 1.97,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q2产量786Mlb折合356.5kt，环比+18.7%。净现金成本$1.97/lb，优于4月预估的~$2.24。Grasberg Block Cave爬坡中。"
+    },
+    {
+      "name": "BHP",
+      "period": "2026Q2",
+      "q1ProdKt": 477,
+      "q1YoYPct": null,
+      "q2ProdKt": 491.9,
+      "q2YoYPct": null,
+      "q2QoQPct": 3.12,
+      "c1Gross": null,
+      "c1Net": null,
+      "aiscNet": null,
+      "status": "pending",
+      "note": "FY26（截至2026年6月30日）集团铜产量1,952.8kt。实际单位成本定于2026年8月18日FY26财务结果发布。Escondida/Spence/Copper SA均指引下限。"
+    },
+    {
+      "name": "Southern Copper",
+      "period": "2026Q2",
+      "q1ProdKt": 230.5,
+      "q1YoYPct": -4,
+      "q2ProdKt": 230.7,
+      "q2YoYPct": null,
+      "q2QoQPct": 0.09,
+      "c1Gross": 2.29,
+      "c1Net": 0.05,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q2产量230,662t，H1合计461,206t。 gross C1 $2.29/lb，net C1 $0.05/lb（同比-93%），受副产品收益（银价同比+158%）影响。2026全年产量预计915–917kt。"
+    },
+    {
+      "name": "Rio Tinto",
+      "period": "2026H1",
+      "q1ProdKt": 229,
+      "q1YoYPct": null,
+      "q2ProdKt": 213,
+      "q2YoYPct": -7,
+      "q2QoQPct": -6.99,
+      "c1Gross": null,
+      "c1Net": -0.25,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "H1铜产量442kt（+1% YoY）。H1 C1净现金成本确认-24.7美分/磅（c1Net=-0.25），受益于高金价副产品抵扣。全年产量指引800–870kt不变。"
+    },
+    {
+      "name": "Anglo American",
+      "period": "2026Q2",
+      "q1ProdKt": 170.4,
+      "q1YoYPct": null,
+      "q2ProdKt": 173.2,
+      "q2YoYPct": 0,
+      "q2QoQPct": 1.64,
+      "c1Gross": null,
+      "c1Net": null,
+      "aiscNet": null,
+      "status": "pending",
+      "note": "Q2产量173.2kt（同比持平）。H1单位成本定于2026年7月30日中期业绩发布。2026全年单位成本指引下调至~145美分/磅（此前~172）。"
+    },
+    {
+      "name": "First Quantum Minerals",
+      "period": "2026Q2",
+      "q1ProdKt": 96.5,
+      "q1YoYPct": null,
+      "q2ProdKt": 100.5,
+      "q2YoYPct": null,
+      "q2QoQPct": 4.15,
+      "c1Gross": null,
+      "c1Net": 2.54,
+      "aiscNet": 4.27,
+      "status": "actual",
+      "note": "Q2产量100,487t，含Cobre Panamá库存处理3,216t。C1 $2.54/lb（含CP），不含CP $2.48；AISC $4.27/lb。套保项目已于2026年6月30日结束。"
+    },
+    {
+      "name": "Teck Resources",
+      "period": "2026Q2",
+      "q1ProdKt": 140,
+      "q1YoYPct": 32,
+      "q2ProdKt": 135.9,
+      "q2YoYPct": 25,
+      "q2QoQPct": -2.93,
+      "c1Gross": 2.25,
+      "c1Net": 1.64,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q2产量135.9kt，QB 55.8kt。total cash unit costs $2.25/lb，net cash $1.64/lb（vs Q2 2025 $2.02）。与Anglo合并预计2026年9月–2027年3月完成。"
+    },
+    {
+      "name": "Antofagasta",
+      "period": "2026Q2",
+      "q1ProdKt": 143,
+      "q1YoYPct": null,
+      "q2ProdKt": 142,
+      "q2YoYPct": null,
+      "q2QoQPct": -0.7,
+      "c1Gross": 2.94,
+      "c1Net": 1.36,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q2产量142kt。gross cash cost $2.94/lb，net $1.36/lb。H1 gross $2.85/lb，net $1.22/lb。2026全年产量指引650–700kt，net cost指引$1.15–1.35/lb不变。"
+    },
+    {
+      "name": "Capstone Copper",
+      "period": "2026Q1",
+      "q1ProdKt": 48,
+      "q1YoYPct": -11,
+      "q2ProdKt": null,
+      "q2YoYPct": null,
+      "q2QoQPct": null,
+      "c1Gross": null,
+      "c1Net": 2.66,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q2 2026结果定于2026年7月30日收盘后发布。2026全年产量指引200–230kt，C1 cash cost指引$2.45–2.75/lb。Mantoverde Union #2罢工影响1–2月生产。"
+    },
+    {
+      "name": "Zijin Mining (紫金矿业)",
+      "period": "2026Q1",
+      "q1ProdKt": 259,
+      "q1YoYPct": -9.9,
+      "q2ProdKt": null,
+      "q2YoYPct": null,
+      "q2QoQPct": null,
+      "c1Gross": 1.73,
+      "c1Net": null,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q1矿产铜25.9万t（-9.9% YoY，Kamoa下降；巨龙二期爬坡中）。单位销售成本约RMB 27,000/t，折合~$1.73/lb（非标准C1，含折旧）。H1报告预计2026年8月下旬发布。"
+    },
+    {
+      "name": "Glencore",
+      "period": "2026H1",
+      "q1ProdKt": 199.6,
+      "q1YoYPct": 19,
+      "q2ProdKt": 197.4,
+      "q2YoYPct": null,
+      "q2QoQPct": -1.1,
+      "c1Gross": null,
+      "c1Net": 2.08,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "H1自有铜产量397.0kt（+15% YoY），Q2产量由H1减Q1推算为197.4kt。H1净现金成本208.4美分/磅（$2.08/lb），较H1 2025的240.6美分下降。H1财务报告定于2026年8月5日。"
+    },
+    {
+      "name": "KGHM Polska Miedź",
+      "period": "2026Q1",
+      "q1ProdKt": 176,
+      "q1YoYPct": 4,
+      "q2ProdKt": null,
+      "q2YoYPct": null,
+      "q2QoQPct": null,
+      "c1Gross": null,
+      "c1Net": 1.69,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q1集团 payable铜176kt（+4% YoY）。集团C1 $1.69/lb（同比-35%），含Polska 1.91、Sierra Gorda 1.02、International 0.70。Q2报告预计2026年8月发布。"
+    },
+    {
+      "name": "CMOC Group (洛阳钼业)",
+      "period": "2026Q1",
+      "q1ProdKt": 187.9,
+      "q1YoYPct": null,
+      "q2ProdKt": null,
+      "q2YoYPct": null,
+      "q2QoQPct": null,
+      "c1Gross": 2.01,
+      "c1Net": null,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q1铜产量187,880t（TFM+KFM）。表格中c1Gross为推算值（铜板块COGS/销量折合~$2.01/lb），非公司披露C1。H1报告预计2026年8月下旬发布。"
+    },
+    {
+      "name": "Ivanhoe Mines (Kamoa-Kakula)",
+      "period": "2026Q1",
+      "q1ProdKt": 71.4,
+      "q1YoYPct": null,
+      "q2ProdKt": 64.3,
+      "q2YoYPct": null,
+      "q2QoQPct": -9.94,
+      "c1Gross": 2.9,
+      "c1Net": 2.58,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q2产量64,328t（LCS 56天停产影响）。Q2 C1尚未披露，预计随Q2财务结果于~2026年8月发布。全年指引产量290–330kt，C1 $2.60–3.00/lb。"
+    },
+    {
+      "name": "Nornickel",
+      "period": "2026Q1",
+      "q1ProdKt": 98.7,
+      "q1YoYPct": -10,
+      "q2ProdKt": null,
+      "q2YoYPct": null,
+      "q2QoQPct": null,
+      "c1Gross": null,
+      "c1Net": null,
+      "aiscNet": null,
+      "status": "pending",
+      "note": "Q1铜产量98,679t（-10% YoY）。公司不披露季度单位成本；H1 IFRS报告预计2026年8月发布。2026全年铜产量预计下降约5%。"
+    },
+    {
+      "name": "MMG (Las Bambas)",
+      "period": "2026H1",
+      "q1ProdKt": 101,
+      "q1YoYPct": 6,
+      "q2ProdKt": 109.2,
+      "q2YoYPct": -5,
+      "q2QoQPct": 8.12,
+      "c1Gross": null,
+      "c1Net": 0.55,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q2 Las Bambas铜精矿产量109,192t（-5% YoY，品位0.86%）。H1 C1 $0.55/lb（报告仅披露H1，无Q2单季）。全年C1指引下调至$0.85–1.05/lb（此前$1.20–1.40）。"
+    },
+    {
+      "name": "Lundin Mining",
+      "period": "2026Q1",
+      "q1ProdKt": 79.9,
+      "q1YoYPct": null,
+      "q2ProdKt": null,
+      "q2YoYPct": null,
+      "q2QoQPct": null,
+      "c1Gross": null,
+      "c1Net": 1.66,
+      "aiscNet": null,
+      "status": "actual",
+      "note": "Q2 2026结果定于2026年7月30日发布。2026全年产量指引310–335kt，consolidated cash cost指引$1.90–2.10/lb。Caserones股权已增至75%。"
+    },
+    {
+      "name": "Hudbay Minerals",
+      "period": "2026Q1",
+      "q1ProdKt": 27.9,
+      "q1YoYPct": null,
+      "q2ProdKt": null,
+      "q2YoYPct": null,
+      "q2QoQPct": null,
+      "c1Gross": 4.41,
+      "c1Net": -1.8,
+      "aiscNet": 0.73,
+      "status": "actual",
+      "note": "Q1产量27,929t。gross cash cost $4.41/lb，net cash cost $(1.80)/lb（创纪录低，副产品收益$6.21/lb），AISC $0.73/lb。Q2结果预计2026年8月发布。"
+    },
+    {
+      "name": "Vale Base Metals",
+      "period": "2026Q1",
+      "q1ProdKt": 102.3,
+      "q1YoYPct": 13,
+      "q2ProdKt": 98.4,
+      "q2YoYPct": 6,
+      "q2QoQPct": -3.81,
+      "c1Gross": null,
+      "c1Net": null,
+      "aiscNet": -0.29,
+      "status": "pending",
+      "note": "Q2产量98.4kt（+6% YoY），创2017年以来最佳Q2；Salobo纪录52.4kt。2Q26财务结果定于7月30日收盘后发布。Q1 all-in cost $(0.29)/lb。"
+    }
+  ],
+  "pendingReports": [
+    {
+      "company": "Anglo American",
+      "expected": "2026-07-30",
+      "what": "H1 2026 interim results with actual copper unit cost"
+    },
+    {
+      "company": "Lundin Mining",
+      "expected": "2026-07-30",
+      "what": "Q2 2026 results with production and cash cost"
+    },
+    {
+      "company": "Capstone Copper",
+      "expected": "2026-07-30",
+      "what": "Q2 2026 results with production and C1 cash cost"
+    },
+    {
+      "company": "Vale Base Metals",
+      "expected": "2026-07-30",
+      "what": "2Q26 financial results with all-in copper cost"
+    },
+    {
+      "company": "Glencore",
+      "expected": "2026-08-05",
+      "what": "H1 2026 financial report with detailed unit costs"
+    },
+    {
+      "company": "BHP",
+      "expected": "2026-08-18",
+      "what": "FY26 full-year results with actual unit costs (Escondida, Spence, Copper SA)"
+    },
+    {
+      "company": "Codelco",
+      "expected": "2026-08-late",
+      "what": "H1 2026 operational and financial report with unit costs"
+    },
+    {
+      "company": "Zijin Mining",
+      "expected": "2026-08-late",
+      "what": "H1 2026 report with mined copper production and cost"
+    },
+    {
+      "company": "KGHM",
+      "expected": "2026-08",
+      "what": "Q2 2026 consolidated report with group C1"
+    },
+    {
+      "company": "CMOC",
+      "expected": "2026-08-late",
+      "what": "H1 2026 report with copper production and cost"
+    },
+    {
+      "company": "Ivanhoe Mines",
+      "expected": "2026-08",
+      "what": "Q2 2026 financial results with C1 cash cost"
+    },
+    {
+      "company": "Nornickel",
+      "expected": "2026-08",
+      "what": "H1 2026 IFRS report"
+    },
+    {
+      "company": "Hudbay Minerals",
+      "expected": "2026-08",
+      "what": "Q2 2026 results with production and cash cost"
+    }
+  ],
+  "production": {
+    "total2025Kt": 14622.5,
+    "total2026eKt": 14482.5,
+    "yoyPct": -0.96,
+    "rows": [
+      {
+        "name": "Codelco",
+        "y2025": 1333,
+        "y2026e": 1345,
+        "y2028": null,
+        "y2030": 1700
+      },
+      {
+        "name": "Freeport-McMoRan",
+        "y2025": 1534,
+        "y2026e": 1406,
+        "y2028": null,
+        "y2030": null
+      },
+      {
+        "name": "BHP",
+        "y2025": 1952.8,
+        "y2026e": 1725,
+        "y2028": null,
+        "y2030": null
+      },
+      {
+        "name": "Zijin Mining",
+        "y2025": 1090,
+        "y2026e": 1200,
+        "y2028": 1550,
+        "y2030": null
+      },
+      {
+        "name": "Southern Copper",
+        "y2025": 956.3,
+        "y2026e": 916,
+        "y2028": 970.3,
+        "y2030": 1005.6
+      },
+      {
+        "name": "Glencore",
+        "y2025": 851.6,
+        "y2026e": 840,
+        "y2028": null,
+        "y2030": null
+      },
+      {
+        "name": "Rio Tinto",
+        "y2025": 883,
+        "y2026e": 835,
+        "y2028": null,
+        "y2030": 1000
+      },
+      {
+        "name": "First Quantum Minerals",
+        "y2025": 396,
+        "y2026e": 440,
+        "y2028": null,
+        "y2030": null
+      },
+      {
+        "name": "Anglo American",
+        "y2025": 695,
+        "y2026e": 730,
+        "y2028": null,
+        "y2030": null
+      },
+      {
+        "name": "KGHM",
+        "y2025": 710,
+        "y2026e": 731,
+        "y2028": null,
+        "y2030": null
+      },
+      {
+        "name": "Antofagasta",
+        "y2025": 653.7,
+        "y2026e": 675,
+        "y2028": null,
+        "y2030": null
+      },
+      {
+        "name": "CMOC",
+        "y2025": 741.1,
+        "y2026e": 790,
+        "y2028": 1000,
+        "y2030": null
+      },
+      {
+        "name": "Ivanhoe Mines",
+        "y2025": 388.8,
+        "y2026e": 400,
+        "y2028": 520,
+        "y2030": null
+      },
+      {
+        "name": "Teck Resources",
+        "y2025": 453.5,
+        "y2026e": 492.5,
+        "y2028": 472.5,
+        "y2030": 800
+      },
+      {
+        "name": "Nornickel",
+        "y2025": 420,
+        "y2026e": 420,
+        "y2028": null,
+        "y2030": null
+      },
+      {
+        "name": "MMG",
+        "y2025": 506.9,
+        "y2026e": 510.5,
+        "y2028": null,
+        "y2030": null
+      },
+      {
+        "name": "Lundin Mining",
+        "y2025": 331.2,
+        "y2026e": 322.5,
+        "y2028": 302.5,
+        "y2030": null
+      },
+      {
+        "name": "Vale Base Metals",
+        "y2025": 382.3,
+        "y2026e": 365,
+        "y2028": null,
+        "y2030": 460
+      },
+      {
+        "name": "Hudbay Minerals",
+        "y2025": 118.5,
+        "y2026e": 124,
+        "y2028": 159,
+        "y2030": null
+      },
+      {
+        "name": "Capstone Copper",
+        "y2025": 224.8,
+        "y2026e": 215,
+        "y2028": null,
+        "y2030": null
+      }
+    ]
+  },
+  "c1Trend": {
+    "years": [
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "series": [
+      {
+        "name": "Freeport-McMoRan",
+        "values": [
+          1.34,
+          1.5,
+          1.61,
+          1.56,
+          1.65
+        ]
+      },
+      {
+        "name": "Southern Copper",
+        "values": [
+          0.67,
+          0.78,
+          1.02,
+          0.88,
+          0.59
+        ]
+      },
+      {
+        "name": "Antofagasta",
+        "values": [
+          1.2,
+          1.61,
+          1.61,
+          1.64,
+          1.19
+        ]
+      },
+      {
+        "name": "Teck Resources",
+        "values": [
+          null,
+          1.49,
+          1.87,
+          2.2,
+          2.03
+        ]
+      },
+      {
+        "name": "Anglo American",
+        "values": [
+          null,
+          null,
+          1.66,
+          1.51,
+          1.5
+        ]
+      },
+      {
+        "name": "Rio Tinto",
+        "values": [
+          null,
+          null,
+          1.95,
+          1.42,
+          0.67
+        ]
+      },
+      {
+        "name": "Codelco",
+        "values": [
+          null,
+          1.65,
+          2.03,
+          1.99,
+          2.12
+        ]
+      },
+      {
+        "name": "MMG (Las Bambas)",
+        "values": [
+          1.02,
+          1.53,
+          1.6,
+          1.51,
+          1.12
+        ]
+      },
+      {
+        "name": "Ivanhoe (Kamoa-Kakula)",
+        "values": [
+          null,
+          1.39,
+          1.45,
+          1.65,
+          2.16
+        ]
+      },
+      {
+        "name": "Hudbay Minerals",
+        "values": [
+          null,
+          0.86,
+          0.8,
+          0.46,
+          -0.22
+        ]
+      }
+    ]
+  },
+  "newMines": [
+    {
+      "mine": "Julong Phase 2 (巨龙二期)",
+      "company": "Zijin Mining",
+      "year": 2026,
+      "capacityKtpa": 300,
+      "status": "Commissioned Jan 2026; ramping (+135 ktpa incremental)"
+    },
+    {
+      "mine": "Tia Maria",
+      "company": "Southern Copper",
+      "year": 2027,
+      "capacityKtpa": 120,
+      "status": "Under construction (~23% complete late 2025); first cathode 2027"
+    },
+    {
+      "mine": "Reko Diq Phase 1",
+      "company": "Barrick 50% / Pakistan & Balochistan 50%",
+      "year": 2028,
+      "capacityKtpa": 200,
+      "status": "Under construction but under 12-month review in 2026; may slip to 2029"
+    },
+    {
+      "mine": "Lumwana expansion",
+      "company": "Barrick",
+      "year": 2028,
+      "capacityKtpa": 240,
+      "status": "Under construction; on time and on budget (+120 ktpa net incremental)"
+    },
+    {
+      "mine": "Khoemacau Phase 2 expansion",
+      "company": "MMG",
+      "year": 2028,
+      "capacityKtpa": 130,
+      "status": "Construction; groundbreaking Feb 2026; first concentrate H1 2028 (+80 ktpa net)"
+    },
+    {
+      "mine": "Zafranal",
+      "company": "Teck / Mitsubishi",
+      "year": 2028,
+      "capacityKtpa": 76,
+      "status": "Permitting/early works; construction start targeted 2026"
+    },
+    {
+      "mine": "Alumbrera restart (MARA stage 1)",
+      "company": "Glencore (MARA JV)",
+      "year": 2028,
+      "capacityKtpa": 19,
+      "status": "Restart execution; operations resume Q4 2026; RIGI filed"
+    },
+    {
+      "mine": "Santo Domingo",
+      "company": "Capstone Copper 75% / Orion 25%",
+      "year": 2029,
+      "capacityKtpa": 106,
+      "status": "Pre-construction; FID expected Q4 2026"
+    },
+    {
+      "mine": "Antapaccay Coroccohuayco",
+      "company": "Glencore",
+      "year": 2029,
+      "capacityKtpa": 165,
+      "status": "Sanctioned/development; announced at Glencore CMD Dec 2025 (+165 ktpa net)"
+    },
+    {
+      "mine": "Copper World Phase 1",
+      "company": "Hudbay 70% / Mitsubishi 30%",
+      "year": 2029,
+      "capacityKtpa": 85,
+      "status": "DFS mid-2026; FID expected late 2026; fully state-permitted for Phase 1"
+    },
+    {
+      "mine": "Vicuña - Josemaria (stage 1)",
+      "company": "Lundin Mining 50% / BHP 50%",
+      "year": 2030,
+      "capacityKtpa": 150,
+      "status": "Pre-construction; RIGI filed Dec 2025; FID targeted late 2026/2027"
+    },
+    {
+      "mine": "Tampakan",
+      "company": "Sagittarius Mines",
+      "year": 2028,
+      "capacityKtpa": 375,
+      "status": "Pre-construction; partner search ongoing; low confidence"
+    },
+    {
+      "mine": "Malmyzh",
+      "company": "Russian Copper Company (RCC)",
+      "year": 2025,
+      "capacityKtpa": 250,
+      "status": "Ramping; first production 2025 initial ~120 ktpa; remaining +130 ktpa incremental 2026–2028"
+    }
+  ]
+};
+
+  var PALETTE = ["#b5651d", "#2f6bff", "#16803c", "#8a4baf", "#cb2634", "#0e8a8a", "#b8860b", "#5b6b7f", "#d2691e", "#6d28d9", "#64748b", "#a0522d"];
+  var STATUS_LABEL = { actual: "实际", pending: "待披露", guidance: "指引" };
+
+  var lastData = null;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function isObj(x) { return x !== null && typeof x === "object" && !Array.isArray(x); }
+  function arr(x, fb) { return (Array.isArray(x) && x.length) ? x : fb; }
+  function numOrNull(x) { return (typeof x === "number" && isFinite(x)) ? x : null; }
+  function strOr(x, fb) { return (typeof x === "string" && x) ? x : fb; }
+  function tok(name, fb) {
+    try {
+      if (host && typeof host.getToken === "function") {
+        var v = host.getToken(name);
+        if (v) return v;
+      }
+    } catch (e) { /* ignore */ }
+    return fb;
+  }
+
+  function normalize(main) {
+    main = isObj(main) ? main : {};
+    var p = isObj(main.production) ? main.production : {};
+    var t = isObj(main.c1Trend) ? main.c1Trend : {};
+    return {
+      updatedAt: strOr(main.updatedAt, SAMPLE.updatedAt),
+      headline: strOr(main.headline, SAMPLE.headline),
+      highlights: arr(main.highlights, SAMPLE.highlights),
+      companies: arr(main.companies, SAMPLE.companies),
+      pendingReports: arr(main.pendingReports, SAMPLE.pendingReports),
+      production: {
+        total2025Kt: numOrNull(p.total2025Kt) !== null ? numOrNull(p.total2025Kt) : SAMPLE.production.total2025Kt,
+        total2026eKt: numOrNull(p.total2026eKt) !== null ? numOrNull(p.total2026eKt) : SAMPLE.production.total2026eKt,
+        yoyPct: numOrNull(p.yoyPct) !== null ? numOrNull(p.yoyPct) : SAMPLE.production.yoyPct,
+        rows: arr(p.rows, SAMPLE.production.rows)
+      },
+      c1Trend: {
+        years: arr(t.years, SAMPLE.c1Trend.years),
+        series: arr(t.series, SAMPLE.c1Trend.series)
+      },
+      newMines: arr(main.newMines, SAMPLE.newMines)
+    };
+  }
+
+  function fmtCost(v) {
+    if (v === null || v === undefined || typeof v !== "number" || !isFinite(v)) {
+      return '<span class="dash">—</span>';
+    }
+    var s = v.toFixed(2);
+    return v < 0 ? '<span class="neg">' + s + "</span>" : s;
+  }
+  function fmtNum(v, digits) {
+    if (typeof v !== "number" || !isFinite(v)) return '<span class="dash">—</span>';
+    return v.toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+  function ktToMt(kt) {
+    if (typeof kt !== "number" || !isFinite(kt)) return null;
+    return kt / 1000;
+  }
+
+  /* ---------- header ---------- */
+  function renderHeader(d) {
+    $("updatedAt").textContent = "更新:" + d.updatedAt;
+    $("headline").textContent = d.headline;
+  }
+
+  /* ---------- KPI ---------- */
+  function renderKpis(d) {
+    var p = d.production;
+    var m25 = ktToMt(p.total2025Kt);
+    var m26 = ktToMt(p.total2026eKt);
+    var yoy = p.yoyPct;
+    var yoyCls = (typeof yoy === "number" && yoy < 0) ? "neg" : "pos";
+    var yoyTxt = (typeof yoy === "number") ? (yoy > 0 ? "+" : "") + yoy.toFixed(1) : "—";
+    var items = [
+      { label: "前20大 2025 合计产量", value: m25 !== null ? m25.toFixed(1) : "—", unit: "Mt", cls: "" },
+      { label: "2026 指引合计", value: m26 !== null ? m26.toFixed(1) : "—", unit: "Mt", cls: "" },
+      { label: "同比变化", value: yoyTxt, unit: "%", cls: yoyCls },
+      { label: "待披露成本公司数", value: String(d.pendingReports.length), unit: "家", cls: "" }
+    ];
+    $("kpiStrip").innerHTML = items.map(function (k) {
+      return '<div class="kpi"><div class="label">' + esc(k.label) + '</div>' +
+        '<output class="value ' + k.cls + '">' + esc(k.value) + '<span class="unit">' + esc(k.unit) + "</span></output></div>";
+    }).join("");
+  }
+
+  /* ---------- highlights ---------- */
+  function renderHighlights(d) {
+    $("highlights").innerHTML = d.highlights.map(function (h) {
+      return "<li>" + esc(h) + "</li>";
+    }).join("");
+  }
+
+  /* ---------- pending reports ---------- */
+  function renderPending(d) {
+    $("pendingList").innerHTML = d.pendingReports.map(function (r) {
+      return '<li class="pending-item">' +
+        '<span class="co">' + esc(r.company) + "</span>" +
+        '<span class="when">' + esc(r.expected) + "</span>" +
+        '<span class="what">' + esc(r.what) + "</span></li>";
+    }).join("");
+  }
+
+  /* ---------- cost table ---------- */
+  function pctCell(v) {
+    if (typeof v !== "number" || !isFinite(v)) return '<span class="dash">—</span>';
+    var up = v >= 0;
+    return '<span class="' + (up ? "up" : "down") + '">' + (up ? "+" : "") + v.toFixed(1) + "%</span>";
+  }
+  function renderCostTable(d) {
+    $("costBody").innerHTML = d.companies.map(function (c) {
+      var st = STATUS_LABEL[c.status] || c.status || "—";
+      var stCls = STATUS_LABEL[c.status] ? c.status : "pending";
+      var q1 = (typeof c.q1ProdKt === "number") ? fmtNum(c.q1ProdKt, 1) : '<span class="dash">—</span>';
+      var q2 = (typeof c.q2ProdKt === "number") ? fmtNum(c.q2ProdKt, 1) : '<span class="dash">—</span>';
+      var qoq = c.q2QoQPct;
+      if (typeof qoq !== "number" && typeof c.q1ProdKt === "number" && c.q1ProdKt > 0 && typeof c.q2ProdKt === "number") {
+        qoq = (c.q2ProdKt - c.q1ProdKt) / c.q1ProdKt * 100;
+      }
+      var note = strOr(c.note, "");
+      return "<tr>" +
+        '<td class="co">' + esc(c.name) + "</td>" +
+        '<td class="num">' + q1 + "</td>" +
+        '<td class="num">' + pctCell(c.q1YoYPct) + "</td>" +
+        '<td class="num">' + q2 + "</td>" +
+        '<td class="num">' + pctCell(qoq) + "</td>" +
+        '<td class="num">' + pctCell(c.q2YoYPct) + "</td>" +
+        "<td>" + esc(c.period) + "</td>" +
+        '<td class="num">' + fmtCost(c.c1Gross) + "</td>" +
+        '<td class="num">' + fmtCost(c.c1Net) + "</td>" +
+        '<td class="num">' + fmtCost(c.aiscNet) + "</td>" +
+        '<td><span class="st ' + stCls + '">' + esc(st) + "</span></td>" +
+        '<td class="note" title="' + esc(note) + '">' + esc(note) + "</td></tr>";
+    }).join("");
+  }
+
+  /* ---------- production table ---------- */
+  function renderProdTable(d) {
+    $("prodBody").innerHTML = d.production.rows.map(function (r) {
+      var pct = null;
+      if (typeof r.y2025 === "number" && r.y2025 > 0 && typeof r.y2026e === "number") {
+        pct = (r.y2026e - r.y2025) / r.y2025 * 100;
+      }
+      var chg;
+      if (pct === null) {
+        chg = '<span class="dash">—</span>';
+      } else {
+        var up = pct >= 0;
+        var w = Math.min(Math.abs(pct), 30) / 30 * 100;
+        var color = up ? "var(--c-positive)" : "var(--c-danger)";
+        chg = '<span class="chg-cell"><span class="chg-bar"><i style="width:' + w.toFixed(0) + "%;background:" + color + '"></i></span>' +
+          '<span class="chg-pct ' + (up ? "up" : "down") + '">' + (up ? "+" : "") + pct.toFixed(1) + "%</span></span>";
+      }
+      return "<tr>" +
+        '<td class="co">' + esc(r.name) + "</td>" +
+        '<td class="num">' + fmtNum(r.y2025, 1) + "</td>" +
+        '<td class="num">' + fmtNum(r.y2026e, 1) + "</td>" +
+        '<td class="num">' + fmtNum(r.y2028, 1) + "</td>" +
+        '<td class="num">' + fmtNum(r.y2030, 1) + "</td>" +
+        '<td class="chg">' + chg + "</td></tr>";
+    }).join("");
+  }
+
+  /* ---------- new mines ---------- */
+  function renderMines(d) {
+    var groups = {};
+    var years = [];
+    d.newMines.forEach(function (m) {
+      var y = (typeof m.year === "number") ? m.year : 0;
+      if (!groups[y]) { groups[y] = []; years.push(y); }
+      groups[y].push(m);
+    });
+    years.sort(function (a, b) { return a - b; });
+    $("minesTrack").innerHTML = years.map(function (y) {
+      var cards = groups[y].map(function (m) {
+        var cap = (typeof m.capacityKtpa === "number") ? '<span class="cap">' + m.capacityKtpa + " kt/年</span>" : "";
+        return '<div class="mine-card">' +
+          '<div><span class="nm">' + esc(m.mine) + "</span>" + cap + "</div>" +
+          '<div class="meta">' + esc(m.company) + "</div>" +
+          '<div class="mst">' + esc(m.status) + "</div></div>";
+      }).join("");
+      return '<div class="mine-year"><div class="yr">' + (y === 0 ? "待定" : y) + "</div>" + cards + "</div>";
+    }).join("");
+  }
+
+  /* ---------- C1 trend chart ---------- */
+  function niceTicks(min, max, count) {
+    if (min > 0) min = 0;
+    if (max < 0) max = 0;
+    var span = max - min || 1;
+    var step = span / count;
+    var mag = Math.pow(10, Math.floor(Math.log(step) / Math.LN10));
+    var norm = step / mag;
+    var nice = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+    step = nice * mag;
+    var lo = Math.floor(min / step) * step;
+    var hi = Math.ceil(max / step) * step;
+    var ticks = [];
+    for (var v = lo; v <= hi + step * 0.5; v += step) ticks.push(v);
+    return { lo: lo, hi: hi, ticks: ticks };
+  }
+
+  function drawChart(trend) {
+    var canvas = $("c1Chart");
+    if (!canvas || !canvas.getContext) return;
+    var box = canvas.parentElement;
+    var cssW = Math.max(box.clientWidth - 0, 240);
+    var cssH = 250;
+    var dpr = (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.height = cssH + "px";
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    var years = trend.years;
+    var series = trend.series;
+    if (!years.length || !series.length) return;
+
+    var vmin = Infinity, vmax = -Infinity;
+    series.forEach(function (s) {
+      (s.values || []).forEach(function (v) {
+        if (typeof v === "number" && isFinite(v)) {
+          if (v < vmin) vmin = v;
+          if (v > vmax) vmax = v;
+        }
+      });
+    });
+    if (vmin === Infinity) { vmin = 0; vmax = 1; }
+
+    var t = niceTicks(vmin, vmax, 4);
+    var padL = 44, padR = 12, padT = 24, padB = 26;
+    var plotW = cssW - padL - padR;
+    var plotH = cssH - padT - padB;
+
+    function xAt(i) { return padL + (years.length === 1 ? plotW / 2 : i / (years.length - 1) * plotW); }
+    function yAt(v) { return padT + (1 - (v - t.lo) / (t.hi - t.lo || 1)) * plotH; }
+
+    var cText = tok("--kimi-color-text-secondary", tok("textSecondary", "#4e5969"));
+    var cGrid = tok("--kimi-color-border", tok("border", "#e5e6eb"));
+    var cAxis = tok("--kimi-color-text-tertiary", tok("textTertiary", "#86909c"));
+
+    ctx.font = "11px -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif";
+
+    /* axis unit label */
+    ctx.fillStyle = cAxis;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("美元/磅", padL, 4);
+
+    /* gridlines + y labels */
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    t.ticks.forEach(function (v) {
+      var y = yAt(v);
+      ctx.strokeStyle = cGrid;
+      ctx.lineWidth = v === 0 ? 1.4 : 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(cssW - padR, y);
+      ctx.stroke();
+      ctx.fillStyle = cText;
+      ctx.fillText(v.toFixed(1), padL - 6, y);
+    });
+
+    /* x labels */
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    years.forEach(function (yr, i) {
+      ctx.fillStyle = cText;
+      ctx.fillText(String(yr), xAt(i), cssH - padB + 6);
+    });
+
+    /* series lines, break at null */
+    series.forEach(function (s, si) {
+      var color = PALETTE[si % PALETTE.length];
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      var pen = false;
+      ctx.beginPath();
+      (s.values || []).forEach(function (v, i) {
+        if (typeof v === "number" && isFinite(v)) {
+          var x = xAt(i), y = yAt(v);
+          if (pen) { ctx.lineTo(x, y); } else { ctx.moveTo(x, y); pen = true; }
+        } else {
+          pen = false;
+        }
+      });
+      ctx.stroke();
+      /* points */
+      ctx.fillStyle = color;
+      (s.values || []).forEach(function (v, i) {
+        if (typeof v === "number" && isFinite(v)) {
+          ctx.beginPath();
+          ctx.arc(xAt(i), yAt(v), 2.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    });
+  }
+
+  function renderLegend(trend) {
+    $("chartLegend").innerHTML = trend.series.map(function (s, i) {
+      var color = PALETTE[i % PALETTE.length];
+      return '<span class="lg"><span class="chip" style="background:' + color + '"></span>' + esc(s.name) + "</span>";
+    }).join("");
+  }
+
+  /* ---------- status ---------- */
+  function renderStatus() {
+    var el = $("statusPill");
+    if (!el) return;
+    var s = (host && host.status) ? host.status : "idle";
+    if (s === "running") {
+      el.textContent = "更新中…";
+      el.className = "pill running";
+      el.hidden = false;
+    } else if (s === "error" || s === "degraded" || s === "cancelled") {
+      el.textContent = s === "error" ? "更新失败,展示上次数据" : (s === "degraded" ? "部分更新,展示已有数据" : "已取消,展示上次数据");
+      el.className = "pill warn";
+      el.hidden = false;
+    } else {
+      el.hidden = true;
+    }
+  }
+
+  /* ---------- master render ---------- */
+  function render(d) {
+    lastData = d;
+    renderHeader(d);
+    renderKpis(d);
+    renderHighlights(d);
+    renderPending(d);
+    renderCostTable(d);
+    renderProdTable(d);
+    renderMines(d);
+    renderLegend(d.c1Trend);
+    drawChart(d.c1Trend);
+  }
+
+  /* ---------- init ---------- */
+  /* Lean delivery smoke hosts expose only data/status and a stub DOM; skip rendering there. */
+  var domReady = false;
+  try {
+    domReady = !!(typeof document !== "undefined" &&
+      typeof document.getElementById === "function" &&
+      document.getElementById("updatedAt") &&
+      document.getElementById("kpiStrip"));
+  } catch (e) { domReady = false; }
+  if (!domReady) return;
+
+  if (host && typeof host.onDataChange === "function") {
+    host.onDataChange(function (data) {
+      render(normalize(data && data.main));
+    });
+  } else {
+    render(normalize(null));
+  }
+
+  renderStatus();
+  if (host && typeof host.onStatusChange === "function") {
+    host.onStatusChange(renderStatus);
+  }
+  if (host && typeof host.onThemeChange === "function") {
+    host.onThemeChange(function () {
+      if (lastData) drawChart(lastData.c1Trend);
+    });
+  }
+  if (typeof ResizeObserver === "function") {
+    try {
+      var chartBox = document.querySelector(".chart-box");
+      if (chartBox) {
+        var ro = new ResizeObserver(function () {
+          if (lastData) drawChart(lastData.c1Trend);
+        });
+        ro.observe(chartBox);
+      }
+    } catch (e) { /* ignore */ }
+  } else if (typeof window !== "undefined" && window.addEventListener) {
+    window.addEventListener("resize", function () {
+      if (lastData) drawChart(lastData.c1Trend);
+    });
+  }
+})();
+</script>
+</body>
+</html>
